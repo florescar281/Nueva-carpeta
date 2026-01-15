@@ -2,9 +2,9 @@ class MaquinaExpendedora:
     def __init__(self):
 
         self.productos = {
-            "nombre": "N", "stock": 10,
-            "nombre": "L", "stock": 10,
-            "nombre": "M", "stock": 10
+            "N": {"nombre": "N", "stock": 10},
+            "L": {"nombre": "L", "stock": 10},
+            "M": {"nombre": "M", "stock": 10}
         }
         
         # Precio fijo para todos los productos
@@ -52,7 +52,8 @@ class MaquinaExpendedora:
             "DESPACHANDO_PRODUCTO",     # 7 - Está entregando el producto
             "DEVOLVIENDO_CAMBIO",       # 8 - Está devolviendo el cambio
             "ERROR",                    # 9 - Ocurrió un error
-            "CANCELADO"                 # 10 - El u
+            "CANCELADO",                 # 10 - El u
+            "VOLVIENDO_INICIO",         # 11 - Volviendo al inicio
         ]
         
         # ====================================================================
@@ -74,7 +75,8 @@ class MaquinaExpendedora:
             "PRODUCTO_DESPACHADO",      # 12 - El producto fue entregado
             "CAMBIO_DEVUELTO",          # 13 - El cambio fue devuelto
             "REINICIAR",                 # 14 - Reiniciar la máquina
-            "STOCK_INSUFICIENTE"        # 15 - No hay stock del producto seleccionado
+            "STOCK_INSUFICIENTE",        # 15 - No hay stock del producto seleccionado
+            "DEVUELTA_INICIO"          # 16 - Volver al estado inicial
         ]
         
         # Estado inicial
@@ -180,7 +182,7 @@ class MaquinaExpendedora:
         elif self.estado_actual == 6:
             if evento_idx == 10:  # PAGO_EXITOSO
                 resultado = self.procesar_pago_exitoso()
-            elif evento_idx == 11:  # PAGO_FALLIDO
+            elif evento_idx == 11:  # PAGO_FALLIDO            else:
                 resultado = self.procesar_pago_fallido()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
@@ -203,6 +205,12 @@ class MaquinaExpendedora:
         elif self.estado_actual in [9, 10]:
             if evento_idx == 14:  # REINICIAR
                 resultado = self.reiniciar_maquina()
+            else:
+                resultado = self.error(f"Máquina en estado {self.estados[self.estado_actual]}. Use REINICIAR")
+        
+        elif self.estado_actual == 11:  # VOLVIENDO_INICIO
+            if evento_idx == 16:  # REINICIAR
+                resultado = self.volver_inicio()
             else:
                 resultado = self.error(f"Máquina en estado {self.estados[self.estado_actual]}. Use REINICIAR")
         
@@ -297,7 +305,7 @@ class MaquinaExpendedora:
         self.estado_actual = 4  # VALIDANDO_SELECCION
         
         # Validar selección
-        if producto in self.productos["nombre"] and self.validar_saldo(self.precio) and self.productos["stock"] > 0:
+        if self.producto_seleccionado in self.productos[producto]["nombre"] and self.validar_saldo(self.precio) and self.productos[producto]["stock"] > 0:
             return self.manejar_evento(6, producto)  # PRODUCTO_VALIDO
         else:
             return self.manejar_evento(7, producto)  # PRODUCTO_INVALIDO
@@ -305,8 +313,10 @@ class MaquinaExpendedora:
     def procesar_producto_valido(self, producto):
         """Procesa producto válido"""
         self.estado_actual = 5  # ESPERANDO_CONFIRMACION
-        idx_producto = self.productos.index(producto)
-        nombre_producto = self.productos[idx_producto]
+        if producto in self.productos:
+            nombre_producto = self.productos[producto]["nombre"]
+        else:
+            nombre_producto = producto
         
         return {
             'exito': True,
@@ -344,16 +354,21 @@ class MaquinaExpendedora:
             self.saldo_actual = 0
             
             # Disparar evento PAGO_EXITOSO
-            return self.manejar_evento(10)  # PAGO_EXITOSO
+            return self.manejar_evento("PAGO_EXITOSO")  # PAGO_EXITOSO
         else:
             # Disparar evento PAGO_FALLIDO
-            return self.manejar_evento(11)  # PAGO_FALLIDO
+            return self.manejar_evento("PAGO_FALLIDO")  # PAGO_FALLIDO
     
     def procesar_pago_exitoso(self):
         """Procesa pago exitoso"""
         self.estado_actual = 7  # DESPACHANDO_PRODUCTO
-        idx_producto = self.productos.index(self.producto_seleccionado)
-        nombre_producto = self.productos[idx_producto]
+
+        if self.producto_seleccionado in self.productos:
+            nombre_producto = self.productos[self.producto_seleccionado]["nombre"]
+        else:
+            nombre_producto = self.producto_seleccionado
+        
+        self.manejar_evento("PRODUCTO_DESPACHADO")  # PRODUCTO_DESPACHADO
         
         return {
             'exito': True,
@@ -368,7 +383,13 @@ class MaquinaExpendedora:
         # Si hay cambio, ir a estado de devolución
         if self.cambio_a_devolver > 0:
             self.estado_actual = 8  # DEVOLVIENDO_CAMBIO
+            self.manejar_evento("CAMBIO_DEVUELTO")  # CAMBIO_DEVUELTO
             mensaje = f"Producto entregado. Preparando cambio: ${self.cambio_a_devolver}"
+        elif self.cambio_a_devolver == 0:
+            # Sin cambio, reiniciar directamente
+            self.manejar_evento("DEVUELTA_INICIO")  # REINICIAR
+            self.reiniciar_transaccion(exito=1)
+            mensaje = "Producto entregado. ¡Gracias por su compra!"
         else:
             # Sin cambio, reiniciar directamente
             self.reiniciar_transaccion(exito=1)
@@ -870,6 +891,17 @@ class MaquinaExpendedora:
             'estado': self.estado_actual,
             'saldo': self.saldo_actual
         }
+    def volver_inicio(self):
+        """Vuelve al estado inicial de la maquina"""
+        self.reiniciar_transaccion(exito=1)
+        self.estado_actual = 0  # ESPERANDO_BILLETE
+        self.manejar_evento()  # REINICIAR
+        
+        return {
+            'exito': True,
+            'mensaje': "Volviendo al inicio. Inserte billete para comenzar.",
+            'estado': self.estado_actual
+        }
     
     def reiniciar_maquina(self):
         """Reinicia completamente la máquina"""
@@ -951,7 +983,7 @@ class MaquinaExpendedora:
     def validar_saldo(self, precio):
         if precio > self.saldo_actual:
             return False
-        return self.saldo_actual >= precio
+        return True
     
     def registrar_estado(self, evento, descripcion):
         """Registra un cambio de estado en el historial"""
@@ -966,8 +998,8 @@ class MaquinaExpendedora:
     
     def validar_stock(self):
         """Valida si hay stock del producto seleccionado"""
-        for producto in self.productos["nombre"]:
-            if producto == self.productos["nombre"] and self.productos["stock"] > 0:
+        for producto in self.productos:
+            if producto == self.productos[producto]["nombre"] and self.productos[producto]["stock"] > 0:
                 return True
         return False
     
