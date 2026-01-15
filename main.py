@@ -120,6 +120,7 @@ class aplicacionPrincipal:
                         
                 self.maquina.manejar_evento("REINICIAR")
                 self.actualizar_interfaz()
+            
         elif estado == 0: 
             # Mostrar alerta de compra exitosa sin cambio
             if resultado.get('exito', False) and "Producto entregado" in resultado['mensaje']:
@@ -128,19 +129,27 @@ class aplicacionPrincipal:
                                   "info")
 
     def procesar_cancelar(self):
-        confirmar = self.mostrar_alerta("Confirmar Cancelación", 
-                                       "¿Está seguro de que desea cancelar la operación?\nSe devolverá el dinero ingresado.", 
-                                       "yesno")
-        
-        if confirmar:
-            resultado = self.maquina.manejar_evento("CANCELAR_OPERACION")
+        """Procesa la cancelación de la operación."""
+        if self.maquina.estado_actual == 5:
+            self.mostrar_alerta("Seleccion Cancelada", "Puede seleccionar otro producto.", "info")
+            self.maquina.cancelar_seleccion()
             self.actualizar_interfaz()
-            print(f"Cancelar: {resultado['mensaje']}")
+        else:
+            confirmar = self.mostrar_alerta("Confirmar Cancelación", 
+                                        "¿Está seguro de que desea cancelar la operación?\nSe devolverá el dinero ingresado.", 
+                                        "yesno")
             
-            if resultado.get('exito', False):
-                self.mostrar_alerta("Operación Cancelada", resultado['mensaje'], "info")
-            else:
-                self.mostrar_alerta("Error al Cancelar", resultado['mensaje'], "error")
+            if confirmar:
+                resultado = self.maquina.manejar_evento("CANCELAR_OPERACION")
+                self.actualizar_interfaz()
+                print(f"Cancelar: {resultado['mensaje']}")
+                
+                if resultado.get('exito', False):
+                    self.mostrar_alerta("Operación Cancelada", resultado['mensaje'], "info")
+                    self.maquina.manejar_evento("REINICIAR")
+                    self.actualizar_interfaz()
+                else:
+                    self.mostrar_alerta("Error al Cancelar", resultado['mensaje'], "error")
 
     def actualizar_interfaz(self):
         """Este metodo actualiza los elementos de la interfaz
@@ -179,11 +188,14 @@ class aplicacionPrincipal:
             self.ventana.habilitar_botones_monedas(True)
             self.ventana.habilitar_botones_productos(False)
             self.ventana.habilitar_boton_continuar(False)
-            self.ventana.habilitar_boton_cancelar(True)
+            if estado == 0:
+                self.ventana.habilitar_boton_cancelar(False)
+            else:
+                self.ventana.habilitar_boton_cancelar(True)
         elif estado == 3:  
             self.ventana.habilitar_botones_monedas(False)
             self.ventana.habilitar_botones_productos(True)
-            self.ventana.habilitar_boton_continuar(True)
+            self.ventana.habilitar_boton_continuar(False)
             self.ventana.habilitar_boton_cancelar(True)
         elif estado == 5: 
             self.ventana.habilitar_botones_monedas(False)

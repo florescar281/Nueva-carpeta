@@ -211,7 +211,11 @@ class MaquinaExpendedora:
         # ESTADO: ERROR (9) o CANCELADO (10)
         elif self.estado_actual in [9, 10]:
             if evento_idx == 14:  # REINICIAR
-                resultado = self.reiniciar_maquina()
+                if self.saldo_actual > 0:
+                    self.cancelar_seleccion()
+                else:
+                    self.cancelar_operacion()
+                    resultado = self.reiniciar_maquina()
             else:
                 resultado = self.error(f"Máquina en estado {self.estados[self.estado_actual]}. Use REINICIAR")
             self.siguiente_evento(evento_idx)
@@ -583,10 +587,10 @@ class MaquinaExpendedora:
         
         # Se verifica si el monto del cambio es par y la cantidad de billetes que pueden darse de
         # cada denominacion para cubrirlo (sin contar las reservas).
-        cambio_par = (cambio % 2) == 0
-        cambio_25 = cambio // 25
-        cambio_10 = cambio // 10
-        cambio_5 = cambio // 5
+        cambio_par = int(cambio % 2) == 0
+        cambio_25 = int(cambio // 25)
+        cambio_10 = int(cambio // 10)
+        cambio_5 = int(cambio // 5)
 
         # Variables de control para la operacion de devolucion.
         vuelto_B5 = 0
@@ -978,7 +982,14 @@ class MaquinaExpendedora:
         self.estado_actual = 0  # ESPERANDO_BILLETE
         
         self.registrar_estado("ERROR", mensaje)
+        
+        if self.saldo_actual > 0:
+            self.cambio_a_devolver = self.saldo_actual
+            self.devolver_cambio()
+            
         self.manejar_evento(14)
+
+        self.reiniciar_transaccion(exito=0)
 
         return {
             'exito': False,
