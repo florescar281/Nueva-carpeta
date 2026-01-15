@@ -52,8 +52,12 @@ class aplicacionPrincipal:
         resultado = self.maquina.manejar_evento("CONFIRMAR_COMPRA")
         self.actualizar_interfaz()
         print(f"Continuar: {resultado['mensaje']}")
-        if "exito" in resultado and resultado["exito"]:
-            self.maquina.manejar_evento("PRODUCTO_DESPACHADO")
+        if "exito" in resultado and resultado["exito"] and self.maquina.estado_actual != "ERROR":
+            self.maquina.manejar_evento("REINICIAR")
+            self.actualizar_interfaz()
+            print(f"Producto despachado: {resultado['mensaje']}")
+        elif "falta" in resultado:
+            print(f"Falta dinero: ${resultado['falta']}")
 
     def procesar_cancelar(self):
         resultado = self.maquina.manejar_evento("CANCELAR_OPERACION")
