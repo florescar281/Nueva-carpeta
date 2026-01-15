@@ -124,6 +124,7 @@ class MaquinaExpendedora:
                 resultado = self.reiniciar_maquina()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: VALIDANDO_BILLETE (1)
         elif self.estado_actual == 1:
@@ -133,6 +134,7 @@ class MaquinaExpendedora:
                 resultado = self.procesar_billete_invalido(dato)
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: ESPERANDO_MAS_DINERO (2)
         elif self.estado_actual == 2:
@@ -144,6 +146,7 @@ class MaquinaExpendedora:
                 resultado = self.reiniciar_maquina()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: LISTO_SELECCION (3)
         elif self.estado_actual == 3:
@@ -157,6 +160,7 @@ class MaquinaExpendedora:
                 resultado = self.reiniciar_maquina()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: VALIDANDO_SELECCION (4)
         elif self.estado_actual == 4:
@@ -166,6 +170,7 @@ class MaquinaExpendedora:
                 resultado = self.procesar_producto_invalido(dato)
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: ESPERANDO_CONFIRMACION (5)
         elif self.estado_actual == 5:
@@ -175,6 +180,7 @@ class MaquinaExpendedora:
                 resultado = self.cancelar_seleccion()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: PROCESANDO_PAGO (6)
         elif self.estado_actual == 6:
@@ -184,6 +190,7 @@ class MaquinaExpendedora:
                 resultado = self.procesar_pago_fallido()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: DESPACHANDO_PRODUCTO (7)
         elif self.estado_actual == 7:
@@ -191,6 +198,7 @@ class MaquinaExpendedora:
                 resultado = self.despachar_producto()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: DEVOLVIENDO_CAMBIO (8)
         elif self.estado_actual == 8:
@@ -198,6 +206,7 @@ class MaquinaExpendedora:
                 resultado = self.devolver_cambio2()
             else:
                 resultado = self.error(f"Evento {self.eventos[evento_idx]} no permitido en {self.estados[self.estado_actual]}")
+            self.siguiente_evento(evento_idx)
         
         # ESTADO: ERROR (9) o CANCELADO (10)
         elif self.estado_actual in [9, 10]:
@@ -205,6 +214,7 @@ class MaquinaExpendedora:
                 resultado = self.reiniciar_maquina()
             else:
                 resultado = self.error(f"Máquina en estado {self.estados[self.estado_actual]}. Use REINICIAR")
+            self.siguiente_evento(evento_idx)
         
         # ====================================================================
         # REGISTRAR Y RETORNAR RESULTADO
@@ -276,6 +286,10 @@ class MaquinaExpendedora:
             'estado': self.estado_actual
         }
     
+    def siguiente_evento(self, eve):
+        evento = eve
+        return evento
+
     def procesar_billete_invalido(self, valor):
         """Procesa un billete inválido"""
         # Volver a estado inicial
@@ -346,10 +360,10 @@ class MaquinaExpendedora:
             self.saldo_actual = 0
             
             # Disparar evento PAGO_EXITOSO
-            return self.manejar_evento("PAGO_EXITOSO")  # PAGO_EXITOSO
+            return self.manejar_evento(10)  # PAGO_EXITOSO
         else:
             # Disparar evento PAGO_FALLIDO
-            return self.manejar_evento("PAGO_FALLIDO")  # PAGO_FALLIDO
+            return self.manejar_evento(11)  # PAGO_FALLIDO
     
     def procesar_pago_exitoso(self):
         """Procesa pago exitoso"""
@@ -375,7 +389,6 @@ class MaquinaExpendedora:
         # Devolver el dinero al cliente
         cambio = self.saldo_actual
         self.reiniciar_transaccion(exito=0)
-        
         return {
             'exito': False,
             'mensaje': f"Error en el procesamiento del pago. Se devuelven: ${cambio}",
@@ -385,27 +398,30 @@ class MaquinaExpendedora:
     
     def despachar_producto(self):
         """Despacha el producto"""
+        self.actualizar_stock(self.producto_seleccionado)
+
         # Si hay cambio, ir a estado de devolución
         if self.cambio_a_devolver > 0:
             self.estado_actual = 8  # DEVOLVIENDO_CAMBIO
             mensaje = f"Producto entregado. Preparando cambio: ${self.cambio_a_devolver}"
-            self.manejar_evento("CAMBIO_DEVUELTO")
-        elif self.cambio_a_devolver == 0:
-            self.estado_actual = 0  # ESPERANDO_BILLETE
-            self.reiniciar_transaccion(exito=1)
-            mensaje = "Producto entregado. ¡Gracias por su compra!"
-            self.manejar_evento("REINICIAR")
+            self.manejar_evento(13)  # CAMBIO_DEVUELTO
+            return {
+                'exito': True,
+                'mensaje': mensaje,
+                'estado': self.estado_actual,
+                'cambio': self.cambio_a_devolver
+            }
         else:
             # Sin cambio, reiniciar directamente
             self.reiniciar_transaccion(exito=1)
+            self.estado_actual = 0  # ESPERANDO_BILLETE
             mensaje = "Producto entregado. ¡Gracias por su compra!"
-        
-        return {
-            'exito': True,
-            'mensaje': mensaje,
-            'estado': self.estado_actual,
-            'cambio': self.cambio_a_devolver
-        }
+            self.manejar_evento(14)  # REINICIAR
+            return {
+                'exito': True,
+                'mensaje': mensaje,
+                'estado': self.estado_actual
+            }
     
     # Primera funcion para devolucion de cambio.
     # NOTA: Esta funcion devuelve el cambio siempre en funcion de los billetes de mayor valor
@@ -962,7 +978,7 @@ class MaquinaExpendedora:
         self.estado_actual = 0  # ESPERANDO_BILLETE
         
         self.registrar_estado("ERROR", mensaje)
-        self.manejar_evento("REINICIAR")
+        self.manejar_evento(14)
 
         return {
             'exito': False,

@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 
 COLOR_FONDO = "#808080"
 COLOR_FONDO_CLARO = "#c0c0c0"
@@ -387,3 +388,26 @@ class Plantilla_Interfaz():
         self.saldo_etiqueta.config(text=f"SALDO: ${self.monto_saldo:.2f}")
         self.restante_etiqueta.config(text=f"RESTANTE: ${self.monto_faltante:.2f}")
         self.indicador_estado_etiqueta.config(text=f"ESTADO ACTUAL DE LA MAQUINA: {self.estado_maquina}")
+
+    def habilitar_botones_monedas(self, habilitar):
+        estado = "normal" if habilitar else "disabled"
+        self.boton_B5.configure(state=estado)
+        self.boton_B10.configure(state=estado)
+        self.boton_B25.configure(state=estado)
+    
+    def habilitar_botones_productos(self, habilitar):
+        estado = "normal" if habilitar else "disabled"
+        self.boton_naranja.configure(state=estado)
+        self.boton_limon.configure(state=estado)
+        self.boton_manzana.configure(state=estado)
+
+    def habilitar_boton_continuar(self, habilitar):
+        estado = "normal" if habilitar else "disabled"
+        self.boton_continuar.configure(state=estado)
+    
+    def habilitar_boton_cancelar(self, habilitar):
+        estado = "normal" if habilitar else "disabled"
+        self.boton_cancelar.configure(state=estado)
+
+    def crear_alerta(self, titulo, mensaje):
+        messagebox.showinfo(titulo, mensaje)
