@@ -401,6 +401,20 @@ class Plantilla_Interfaz():
         self.boton_limon.configure(state=estado)
         self.boton_manzana.configure(state=estado)
 
+    # ===== NUEVO PARA PRUEBA =====
+    def habilitar_boton_naranja(self, habilitar):
+        estado = "normal" if habilitar else "disabled"
+        self.boton_naranja.configure(state=estado)
+
+    def habilitar_boton_limon(self, habilitar):
+        estado = "normal" if habilitar else "disabled"
+        self.boton_limon.configure(state=estado)
+
+    def habilitar_boton_manzana(self, habilitar):
+        estado = "normal" if habilitar else "disabled"
+        self.boton_manzana.configure(state=estado)
+    # =============================
+
     def habilitar_boton_continuar(self, habilitar):
         estado = "normal" if habilitar else "disabled"
         self.boton_continuar.configure(state=estado)

@@ -2,17 +2,17 @@ class MaquinaExpendedora:
     def __init__(self):
 
         self.productos = {
-            "N": {"nombre": "N", "stock": 10},
-            "L": {"nombre": "L", "stock": 10},
-            "M": {"nombre": "M", "stock": 10}
+            "N": {"nombre": "Naranja", "stock": 10, "precio": 30.00},
+            "L": {"nombre": "Limon", "stock": 10, "precio": 30.00},
+            "M": {"nombre": "Manzana", "stock": 10, "precio": 30.00}
         }
         
         # Precio fijo para todos los productos
         self.precio = 30.00
         
         # Saldos y reservas totales
-        # NOTA: Con estas variables se guardan las reservas y ventas totales en la maquina. Estas
-        #       son las que se usan para el calculo del vuelto.
+        # NOTA: Con estas variables se guardan las reservas y ventas totales en la máquina. Éstas
+        #       son las que se usan para el cálculo del vuelto.
         self.saldo = 0
         self.saldo_reservado_5 = 8
         self.saldo_reservado_10 = 5
@@ -21,7 +21,7 @@ class MaquinaExpendedora:
 
         # Cantidad total de billetes ingresados por el cliente (Para la interfaz)
         # NOTA: Estas cantidades registran todos los billetes ingresados desde que el programa se
-        #       ejecuta, sin contar las reservas internas. Se usaran solo con fines de control.
+        #       ejecuta, sin contar las reservas internas. Se usarán solo con fines de control.
         self.cantidad_B5 = 0
         self.cantidad_B10 = 0
         self.cantidad_B25 = 0
@@ -29,8 +29,8 @@ class MaquinaExpendedora:
         # Cantidad total de billetes ingresados por el cliente para una operacion determinada.
         # NOTA: Estas variables permiten hacer un seguimiento de los billetes ingresados por el
         #       cliente en una transaccion determinada y el saldo que acumule en la misma. 
-        #       Facilitaran el reinicio de la transaccion sin afectar los montos acumulados 
-        #       previamente en la maquina. Se reinicin a 0 cada vez que se termina una operacion.
+        #       Facilitarán el reinicio de la transacción sin afectar los montos acumulados 
+        #       previamente en la máquina. Se reinician a 0 cada vez que se termina una operación.
         self.cantidad_B5_operacion_actual = 0
         self.cantidad_B10_operacion_actual = 0
         self.cantidad_B25_operacion_actual = 0
@@ -52,7 +52,7 @@ class MaquinaExpendedora:
             "DESPACHANDO_PRODUCTO",     # 7 - Está entregando el producto
             "DEVOLVIENDO_CAMBIO",       # 8 - Está devolviendo el cambio
             "ERROR",                    # 9 - Ocurrió un error
-            "CANCELADO"               # 10 - El usuario canceló
+            "CANCELADO"                 # 10 - El usuario canceló
         ]
         
         # ====================================================================
@@ -73,8 +73,8 @@ class MaquinaExpendedora:
             "PAGO_FALLIDO",             # 11 - Falló el procesamiento del pago
             "PRODUCTO_DESPACHADO",      # 12 - El producto fue entregado
             "CAMBIO_DEVUELTO",          # 13 - El cambio fue devuelto
-            "REINICIAR",                 # 14 - Reiniciar la máquina
-            "STOCK_INSUFICIENTE",        # 15 - No hay stock del producto seleccionado
+            "REINICIAR",                # 14 - Reiniciar la máquina
+            "STOCK_INSUFICIENTE",       # 15 - No hay stock del producto seleccionado
         ]
         
         # Estado inicial
@@ -273,16 +273,22 @@ class MaquinaExpendedora:
             self.saldo_reservado_25 += 1
             self.cantidad_B25 += 1
             self.cantidad_B25_operacion_actual += 1
+
+        puede_seleccionar = False
         
         # Determinar próximo estado
-        if self.saldo_actual >= self.precio:
+        for key,val in self.productos.items():
+            if self.saldo_actual >= val["precio"]:
+                puede_seleccionar = True
+
+        if puede_seleccionar:
             self.estado_actual = 3  # LISTO_SELECCION
             mensaje = f"Billete de ${valor} válido. Saldo: ${self.saldo_actual}. ¡Puede seleccionar producto!"
         else:
             self.estado_actual = 2  # ESPERANDO_MAS_DINERO
             self.falta = self.precio - self.saldo_actual
             mensaje = f"Billete de ${valor} válido. Saldo: ${self.saldo_actual}. Faltan: ${self.falta:.2f}"
-        
+
         return {
             'exito': True,
             'mensaje': mensaje,
@@ -315,7 +321,7 @@ class MaquinaExpendedora:
         self.estado_actual = 4  # VALIDANDO_SELECCION
         
         # Validar selección
-        if self.producto_seleccionado in self.productos[producto]["nombre"] and self.validar_saldo(self.precio) and self.productos[producto]["stock"] > 0:
+        if self.producto_seleccionado in self.productos[producto]["nombre"] and self.validar_saldo(self.productos[producto]["precio"]) and self.productos[producto]["stock"] > 0:
             return self.manejar_evento(6, producto)  # PRODUCTO_VALIDO
         else:
             return self.manejar_evento(7, producto)  # PRODUCTO_INVALIDO
@@ -330,7 +336,7 @@ class MaquinaExpendedora:
         
         return {
             'exito': True,
-            'mensaje': f"{nombre_producto} seleccionado. Precio: ${self.precio}. Confirme la compra.",
+            'mensaje': f"{nombre_producto} seleccionado. Precio: ${self.productos[producto]["precio"]}. Confirme la compra.",
             'producto': producto,
             'precio': self.precio,
             'estado': self.estado_actual
@@ -342,9 +348,9 @@ class MaquinaExpendedora:
         self.producto_seleccionado = None
         
         if producto not in self.productos:
-            mensaje = f"Producto '{producto}' no válido. Use N, L o M."
+            mensaje = f"Producto '{producto}' no válido. Use 'N', 'L' o 'M'."
         else:
-            mensaje = f"Saldo insuficiente para {self.productos[producto]}. Necesita: ${self.precio}, Tiene: ${self.saldo_actual}"
+            mensaje = f"Saldo insuficiente para {self.productos[producto]["nombre"]}. Necesita: ${self.productos[producto]["precio"]}, Tiene: ${self.saldo_actual}"
         
         return {
             'exito': False,
@@ -358,9 +364,9 @@ class MaquinaExpendedora:
         self.estado_actual = 6  # PROCESANDO_PAGO
         
         # Procesar pago
-        if self.saldo_actual >= self.precio:
+        if self.saldo_actual >= self.productos[self.producto_seleccionado]["precio"]:
             # Calcular cambio
-            self.cambio_a_devolver = self.saldo_actual - self.precio
+            self.cambio_a_devolver = self.saldo_actual - self.productos[self.producto_seleccionado]["precio"]
             self.saldo_actual = 0
             
             # Disparar evento PAGO_EXITOSO
@@ -420,164 +426,27 @@ class MaquinaExpendedora:
             self.reiniciar_transaccion(exito=1)
             self.estado_actual = 0  # ESPERANDO_BILLETE
             mensaje = "Producto entregado. ¡Gracias por su compra!"
-            self.manejar_evento(14)  # REINICIAR
+            # self.manejar_evento(14)  # REINICIAR
             return {
                 'exito': True,
                 'mensaje': mensaje,
                 'estado': self.estado_actual
             }
     
-    # Primera funcion para devolucion de cambio.
-    # NOTA: Esta funcion devuelve el cambio siempre en funcion de los billetes de mayor valor
-    #       disponibles. Ejemplo: para dar un cambio de $100, devolvera 4 billetes de 25$ siempre
-    #       que pueda, en vez de distribuir el monto entre los demas billetes disponibles.
-    def devolver_cambio(self):
-        """Devuelve el cambio"""
-        cambio = self.cambio_a_devolver
-        cambio_inicial = cambio
-        self.reiniciar_transaccion()
-        
-        cambio_par = (cambio % 2) == 0
-        cambio_25 = cambio // 25
-        cambio_10 = cambio // 10
-        cambio_5 = cambio // 5
-
-        vuelto_B5 = 0
-        vuelto_B10 = 0
-        vuelto_B25 = 0
-        procesar_vuelto = True
-        min_B25 = False
-        min_B5 = False
-
-        print(f"Para ${cambio} pueden darse:\nBilletes de 5$: {cambio_5}\nBilletes de 10$: {cambio_10}\nBilletes de 25$: {cambio_25}")
-
-        while procesar_vuelto:
-            if cambio_25 > 0 and (cambio_25 + 0) < self.saldo_reservado_25 and cambio >= 25 and not min_B25:
-                print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
-                iter_25 = cambio_25
-                iter_25_par = (iter_25 % 2) == 0
-                for i in range(iter_25):
-
-                    if cambio_par and not iter_25_par and iter_25 == 1:
-                        print("Exploto fue por aca: cambio par y cantidad de $25 a dar igual a 1.")
-                        min_B25 = True
-                    elif cambio_par and not iter_25_par:
-                        if i == (iter_25 - 1):
-                            print("Exploto fue por aca: cambio par y cantidad de $25 a dar impar.")
-                            min_B25 = True
-                            break
-                    elif cambio_par and iter_25_par and iter_25 > 2: # and (self.saldo_reservado_5 % 2) == 0:
-                        if i == 5:
-                            print("Exploto fue por aca: cambio par y cantidad de $25 a dar par.")
-                            min_B25 = True
-                            break
-
-                    if self.cantidad_B25 > 0:
-                        self.cantidad_B25 -= 1
-                        self.saldo_reservado_25 -= 1
-                    else:
-                        self.saldo_reservado_25 -= 1
-                    cambio -= 25
-                    vuelto_B25 += 1
-                    cambio_25 -= 1
-
-                    if cambio == 0:
-                        print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
-                        procesar_vuelto = False
-                        return {
-                            'exito': True,
-                            'mensaje': f"Cambio de ${cambio_inicial} devuelto.\nBilletes de 5$: {vuelto_B5}\nBilletes de 10$: {vuelto_B10}\nBilletes de 25$: {vuelto_B25}\n¡Gracias por su compra!",
-                            'cambio': cambio_inicial,
-                            'estado': self.estado_actual
-                        }
-                    
-                cambio_25 = cambio // 25
-                cambio_10 = cambio // 10
-                cambio_5 = cambio // 5
-
-            elif cambio_10 > 0 and (cambio_10 + 0) < self.saldo_reservado_10 and cambio >= 10:
-                print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
-                print("Se metio aqui")
-                iter_10 = cambio_10
-                for i in range(iter_10):
-                    if self.cantidad_B10 > 0:
-                        self.cantidad_B10 -= 1
-                        self.saldo_reservado_10 -= 1
-                    else:
-                        self.saldo_reservado_10 -= 1
-                    cambio -= 10
-                    vuelto_B10 += 1
-                    cambio_10 -= 1
-                
-                    if cambio == 0:
-                        # print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
-
-                        procesar_vuelto = False
-                        return {
-                            'exito': True,
-                            'mensaje': f"Cambio de ${cambio_inicial} devuelto.\nBilletes de 5$: {vuelto_B5}\nBilletes de 10$: {vuelto_B10}\nBilletes de 25$: {vuelto_B25}\n¡Gracias por su compra!",
-                            'cambio': cambio_inicial,
-                            'estado': self.estado_actual
-                        }
-                
-                cambio_25 = cambio // 25
-                cambio_10 = cambio // 10
-                cambio_5 = cambio // 5
-                
-            elif cambio_5 > 0 and (cambio_5 + 0) < self.saldo_reservado_5 and cambio >= 5:
-                print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
-                print("Se metio aqui tambien")
-                iter_5 = cambio_5
-                for i in range(iter_5):
-
-                    if self.cantidad_B5 > 0:
-                        self.cantidad_B5 -= 1
-                        self.saldo_reservado_5 -= 1
-                    else:
-                        self.saldo_reservado_5 -= 1
-                    cambio -= 5
-                    vuelto_B5 += 1
-                    cambio_5 -= 1
-                
-                    if cambio == 0:
-                        print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
-
-                        procesar_vuelto = False
-                        return {
-                            'exito': True,
-                            'mensaje': f"Cambio de ${cambio_inicial} devuelto.\nBilletes de 5$: {vuelto_B5}\nBilletes de 10$: {vuelto_B10}\nBilletes de 25$: {vuelto_B25}\n¡Gracias por su compra!",
-                            'cambio': cambio_inicial,
-                            'estado': self.estado_actual
-                        }
-                
-                cambio_25 = cambio // 25
-                cambio_10 = cambio // 10
-                cambio_5 = cambio // 5
-                
-            else:
-                print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
-                procesar_vuelto = False
-                return {
-                        'exito': False,
-                        'mensaje': f"Cambio de ${cambio_inicial}. No se dispone de billetes para devolucion completa",
-                        'cambio': cambio_inicial,
-                        'estado': self.estado_actual
-                    }
-    
-    # Segunda funcion para devolucion de cambio.
-    # NOTA: A diferencia de la funcion anterior, esta distribuye el monto a devolver entre los
+    # Función para devolución de cambio.
+    # NOTA: A diferencia de la función anterior, esta distribuye el monto a devolver entre los
     #       billetes disponibles de manera mas uniforme. Ejemplo: para dar un vuelto de 100$, 
     #       utilizara 3 billetes de $25, 2 de 10$ y 1 de 5$. Incluye ademas dos revisiones a la
     #       reserva, para encontrar la forma de cubrir el monto a devolver cuidando en lo posible
     #       no agotar los billetes disponibles para cualquier denominacion. Vigila tambien si el
-    #       monto de la devolucion es par y las cantidades de billetes de 25$ y 5$ que puede dar,
+    #       monto de la devolución es par y las cantidades de billetes de 25$ y 5$ que puede dar,
     #       para distribuir el monto dependiendo de la existencia de los billetes en la reserva.
     #
-    #       Si se desea cambiar el numero de billetes maximos que se dan de cada denominacion, solo
+    #       Si se desea cambiar el número de billetes máximos que se dan de cada denominación, sólo
     #       hay que modificar la iteracion en que la bandera respectiva se vuelve 'True'.
     def devolver_cambio2(self):
         """Devuelve el cambio"""
-        # Se guarda el cambio total a devolver junto con las reservas iniciales para el calculo.
+        # Se guarda el cambio total a devolver junto con las reservas iniciales para el cálculo.
         cambio = self.cambio_a_devolver
         saldo_inicial_25 = self.saldo_reservado_25
         saldo_inicial_10 = self.saldo_reservado_10
@@ -586,26 +455,26 @@ class MaquinaExpendedora:
         # self.reiniciar_transaccion()
         
         # Se verifica si el monto del cambio es par y la cantidad de billetes que pueden darse de
-        # cada denominacion para cubrirlo (sin contar las reservas).
+        # cada denominación para cubrirlo (sin contar las reservas).
         cambio_par = int(cambio % 2) == 0
         cambio_25 = int(cambio // 25)
         cambio_10 = int(cambio // 10)
         cambio_5 = int(cambio // 5)
 
-        # Variables de control para la operacion de devolucion.
+        # Variables de control para la operación de devolución.
         vuelto_B5 = 0
-        vuelto_B10 = 0          # Contadores de los billetes del vuelto dado de cada denominacion.
+        vuelto_B10 = 0          # Contadores de los billetes del vuelto dado de cada denominación.
         vuelto_B25 = 0
         procesar_vuelto = True  # Variable de control del bucle 'while'.
-        num_revision = 0        # Numero de revision de las reservas (se admiten hasta dos revisiones).
+        num_revision = 0        # Número de revisión de las reservas (se admiten hasta dos revisiones).
         min_B25 = False
-        min_B10 = False         # Banderas para determinar si ya se dio el monto minimo para cada dneominacion (2 o 3 a lo sumo, segun el caso)
+        min_B10 = False         # Banderas para determinar si ya se dió el monto mínimo para cada denominación (2 o 3 a lo sumo, según el caso)
         min_B5 = False
 
-        # Funcion que ajusta la cantidad de billetes de $25 que pueden darse de acuerdo a ciertos
-        # parametros (si el cambio es par, la cantidad de billetes que pueden darse, si dicha cantidad
-        # de billetes es par, si hay billetes de $5 en la reserva y el numero de iteracion).
-        # Segun el caso, pueden darse 1, 2 o 3 billetes maximo. Se llama solo en el calculo de los
+        # Función que ajusta la cantidad de billetes de $25 que pueden darse de acuerdo a ciertos
+        # parámetros (si el cambio es par, la cantidad de billetes que pueden darse, si dicha cantidad
+        # de billetes es par, si hay billetes de $5 en la reserva y el número de iteración).
+        # Según el caso, pueden darse 1, 2 o 3 billetes máximo. Se llama solo en el cálculo de los
         # billetes de $25 a devolver.
         def verificar_monto_minimo_B25(camb_par, camb_25, camb_25_par, iter):
             if camb_par and camb_25 == 1 and self.saldo_reservado_5 > 0:
@@ -649,7 +518,7 @@ class MaquinaExpendedora:
 
         print(f"Para ${cambio} pueden darse:\nBilletes de 5$: {cambio_5}\nBilletes de 10$: {cambio_10}\nBilletes de 25$: {cambio_25}")
 
-        # Bucle principal de revision de reservas.
+        # Bucle principal de revisión de reservas.
         while procesar_vuelto:
 
             # Condicional para devolver billetes de 25$.
@@ -658,36 +527,12 @@ class MaquinaExpendedora:
                 iter_25 = cambio_25               # Guardamos la cantidad posible de billetes a dar.
                 iter_25_par = (iter_25 % 2) == 0  # Verificamos si dicha cantidad es par.
                 for i in range(iter_25):          # Iteramos de acuerdo a la cantidad posible.
-
-                    """ if cambio_par and iter_25 == 1:
-                        print("Cambio par y cantidad de $25 a dar igual a 1.")
-                        min_B25 = True
-                    elif cambio_par and not iter_25_par:
-                        if i == 2:
-                            print("Cambio par y cantidad de $25 a dar impar.")
-                            min_B25 = True
-                            break
-                    elif cambio_par and iter_25_par:
-                        if i == 3:
-                            print("Cambio par y cantidad de $25 a dar impar.")
-                            min_B25 = True
-                            break
-                    elif not cambio_par and iter_25_par:
-                        if i == 3:
-                            print("Cambio impar y cantidad de $25 a dar impar.")
-                            min_B25 = True
-                            break
-                    elif not cambio_par and not iter_25_par:
-                        if i == 3:
-                            print("Cambio impar y cantidad de $25 a dar impar.")
-                            min_B25 = True
-                            break """
                     
-                    # Verificamos el numero de revision para ajustar la cantidad minima a devolver.
+                    # Verificamos el número de revisión para ajustar la cantidad mínima a devolver.
                     if num_revision == 0:
                         min_B25 = verificar_monto_minimo_B25(cambio_par, iter_25, iter_25_par, i)
 
-                        # Si se alcanzo la cantidad minima, salimos del bucle. Esta bandera tambien
+                        # Si se alcanzó la cantidad mínima, salimos del bucle. Esta bandera también
                         # asegura que en las siguientes iteraciones del bucle 'while' no volvamos
                         # a dar billetes de $25.
                         if min_B25:
@@ -699,12 +544,12 @@ class MaquinaExpendedora:
                             print("Tres billetes de 25$ dados nuevamente.")
                             break
                     
-                    # Si hay billetes ingresados por el cliente, ademas de los disponibles en reserva,
-                    # actualizamos el contador total (el que esta en la interfaz).
+                    # Si hay billetes ingresados por el cliente, además de los disponibles en reserva,
+                    # actualizamos el contador total (el que está en la interfaz).
                     if self.cantidad_B25 > 0 and self.saldo_reservado_25 > 0:
                         self.cantidad_B25 -= 1
                         self.saldo_reservado_25 -= 1
-                        cambio -= 25                   # Se restan $25 al vuelto en cada iteracion.
+                        cambio -= 25                   # Se restan $25 al vuelto en cada iteración.
                         vuelto_B25 += 1                # Contamos los billetes de $25 devueltos.
                         cambio_25 -= 1                 # Disminuimos la cantidad posible a dar.
                     elif self.saldo_reservado_25 > 0:  # Si no hay billetes ingresados por el cliente, actualizamos las variables internas.
@@ -723,7 +568,11 @@ class MaquinaExpendedora:
                         # Sumamos al saldo total (los ingresos) el precio de los productos.
                         procesar_vuelto = False
                         self.saldo_reservado = 25*self.saldo_reservado_25 + 10*self.saldo_reservado_10 + 5*self.saldo_reservado_5
-                        self.saldo += self.precio
+                        self.saldo += self.productos[self.producto_seleccionado]["precio"]
+
+                        self.estado_actual = 0
+                        self.reiniciar_transaccion(exito=1)
+
                         return {
                             'exito': True,
                             'mensaje': f"Cambio de ${cambio_inicial} devuelto.\nBilletes de 5$: {vuelto_B5}\nBilletes de 10$: {vuelto_B10}\nBilletes de 25$: {vuelto_B25}\n¡Gracias por su compra!",
@@ -734,11 +583,11 @@ class MaquinaExpendedora:
                             'estado': self.estado_actual
                         }
                     
-                # Si el monto del cambio aun no ha sido cubierto, actualizamos la cantidad posible
-                # de billetes a dar segun el monto restante.
-                cambio_25 = cambio // 25
-                cambio_10 = cambio // 10
-                cambio_5 = cambio // 5
+                # Si el monto del cambio aún no ha sido cubierto, actualizamos la cantidad posible
+                # de billetes a dar según el monto restante.
+                cambio_25 = int(cambio // 25)
+                cambio_10 = int(cambio // 10)
+                cambio_5 = int(cambio // 5)
             
             # Condicional para devolver billetes de $10.
             if cambio_10 > 0 and self.saldo_reservado_10 > 0 and cambio >= 10 and not min_B10:
@@ -747,7 +596,7 @@ class MaquinaExpendedora:
                 iter_10 = cambio_10      # Guardamos la cantidad posible de billetes para el vuelto.
                 for i in range(iter_10): # Iteramos sobre la cantidad anterior.
 
-                    # Controlamos la cantidad de billetes dados para una revision determinada.
+                    # Controlamos la cantidad de billetes dados para una revisión determinada.
                     # Si se dan tres billetes, salimos del bucle.
                     if iter_10 >= 3 and num_revision == 0:
                         if i == 3:
@@ -760,7 +609,7 @@ class MaquinaExpendedora:
                             min_B10 = True
                             break
                     
-                    # Actualizamos las variables internas y para la interfaz segun el caso.
+                    # Actualizamos las variables internas y para la interfaz según el caso.
                     if self.cantidad_B10 > 0 and self.saldo_reservado_10 > 0:
                         self.cantidad_B10 -= 1
                         self.saldo_reservado_10 -= 1
@@ -775,14 +624,18 @@ class MaquinaExpendedora:
                     else:
                         print("Billetes de $10 agotados.")
 
-                    # Si se cubrio el vuelto completo, retornamos los resultados.
+                    # Si se cubrió el vuelto completo, retornamos los resultados.
                     if cambio == 0:
                         print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
                         # Actualizamos la variable de control del bucle 'while' y las reservas.
                         # Sumamos al saldo total (los ingresos) el precio de los productos.
                         procesar_vuelto = False
                         self.saldo_reservado = 25*self.saldo_reservado_25 + 10*self.saldo_reservado_10 + 5*self.saldo_reservado_5
-                        self.saldo += self.precio
+                        self.saldo += self.productos[self.producto_seleccionado]["precio"]
+
+                        self.estado_actual = 0
+                        self.reiniciar_transaccion(exito=1)
+
                         return {
                             'exito': True,
                             'mensaje': f"Cambio de ${cambio_inicial} devuelto.\nBilletes de 5$: {vuelto_B5}\nBilletes de 10$: {vuelto_B10}\nBilletes de 25$: {vuelto_B25}\n¡Gracias por su compra!",
@@ -795,9 +648,9 @@ class MaquinaExpendedora:
                 
                 # Actualizamos la cantidad posible de billetes a dar a partir del cambio
                 # restante.
-                cambio_25 = cambio // 25
-                cambio_10 = cambio // 10
-                cambio_5 = cambio // 5
+                cambio_25 = int(cambio // 25)
+                cambio_10 = int(cambio // 10)
+                cambio_5 = int(cambio // 5)
                 
             # Condicional para devolver billetes de $5.
             if cambio_5 > 0 and self.saldo_reservado_5 > 0 and cambio >= 5 and not min_B5:
@@ -806,7 +659,7 @@ class MaquinaExpendedora:
                 iter_5 = cambio_5       # Guardamos la cantidad de billetes posible.
                 for i in range(iter_5): # Iteramos sobre dicha cantidad.
 
-                    # Validamos la cantidad de billetes minimos dados.
+                    # Validamos la cantidad de billetes mínimos dados.
                     if iter_5 >= 5 and num_revision == 0:
                         if i == 5:
                             print("Tres billetes de $5 dados.")
@@ -818,7 +671,7 @@ class MaquinaExpendedora:
                             min_B5 = True
                             break
                     
-                    # Actualizamos las variables internas y para la interfaz segun el caso.
+                    # Actualizamos las variables internas y para la interfaz según el caso.
                     if self.cantidad_B5 > 0 and self.saldo_reservado_5 > 0:
                         self.cantidad_B5 -= 1
                         self.saldo_reservado_5 -= 1
@@ -841,7 +694,11 @@ class MaquinaExpendedora:
                         # Sumamos al saldo total (los ingresos) el precio de los productos.
                         procesar_vuelto = False
                         self.saldo_reservado = 25*self.saldo_reservado_25 + 10*self.saldo_reservado_10 + 5*self.saldo_reservado_5
-                        self.saldo += self.precio
+                        self.saldo += self.productos[self.producto_seleccionado]["precio"]
+
+                        self.estado_actual = 0
+                        self.reiniciar_transaccion(exito=1)
+
                         return {
                             'exito': True,
                             'mensaje': f"Cambio de ${cambio_inicial} devuelto.\nBilletes de 5$: {vuelto_B5}\nBilletes de 10$: {vuelto_B10}\nBilletes de 25$: {vuelto_B25}\n¡Gracias por su compra!",
@@ -852,13 +709,13 @@ class MaquinaExpendedora:
                             'estado': self.estado_actual
                         }
                 
-                # Actualizamos la cantidad de billetes posible a dar en caso de que aun quede
+                # Actualizamos la cantidad de billetes posible a dar en caso de que aún quede
                 # vuelto por dar.
-                cambio_25 = cambio // 25
-                cambio_10 = cambio // 10
-                cambio_5 = cambio // 5
+                cambio_25 = int(cambio // 25)
+                cambio_10 = int(cambio // 10)
+                cambio_5 = int(cambio // 5)
                 
-            # Si al completar dos revisiones de las reservas aun queda cambio por dar, retornamos
+            # Si al completar dos revisiones de las reservas aún queda cambio por dar, retornamos
             # los resultados y la operacion como fallida.
             if num_revision >= 1:
                 print(f"{self.saldo_reservado_5}, {self.saldo_reservado_10}, {self.saldo_reservado_25}, {cambio}")
@@ -873,6 +730,10 @@ class MaquinaExpendedora:
                 self.cantidad_B10 += vuelto_B10
                 self.cantidad_B5 += vuelto_B5
                 self.saldo_reservado = 25*self.saldo_reservado_25 + 10*self.saldo_reservado_10 + 5*self.saldo_reservado_5
+
+                self.estado_actual = 0
+                self.reiniciar_transaccion(exito=0)
+
                 return {
                         'exito': False,
                         'mensaje': f"Cambio de ${cambio_inicial}. No se dispone de billetes para devolucion completa",
@@ -880,9 +741,9 @@ class MaquinaExpendedora:
                         'estado': self.estado_actual
                     }
             
-            # Si al terminar las devoluciones respectivas aun queda cambio por dar y es la primera
-            # revision a las reservas, reiniciamos las banderas a 'False' y aumentamos el numero
-            # de revision.
+            # Si al terminar las devoluciones respectivas aún queda cambio por dar y es la primera
+            # revision a las reservas, reiniciamos las banderas a 'False' y aumentamos el número
+            # de revisión.
             if num_revision == 0 and cambio != 0:
                 min_B25 = False
                 min_B10 = False
@@ -936,16 +797,16 @@ class MaquinaExpendedora:
         self.cambio_a_devolver = 0
         self.billete_actual = 0
 
-        # Si la operacion fue exitosa (1), reiniciamos el contador de billetes de la operacion actual.
+        # Si la operación fue exitosa (1), reiniciamos el contador de billetes de la operación actual.
         # De lo contrario (0), deben reiniciarse tambien las variables internas modificadas.
-        # Si exito == 2, devolvemos la maquina a su estado original.
+        # Si exito == 2, devolvemos la máquina a su estado original.
         if exito == 1:
             self.cantidad_B25_operacion_actual = 0
             self.cantidad_B10_operacion_actual = 0
             self.cantidad_B5_operacion_actual = 0
         elif exito == 0:
-            # Restamos de la cantidad total de billetes de cada denominacion y sus reservas la 
-            # cantidad especifica ingresada para cada una por el cliente.
+            # Restamos de la cantidad total de billetes de cada denominación y sus reservas la 
+            # cantidad específica ingresada para cada una por el cliente.
             if self.cantidad_B25_operacion_actual > 0:
                 self.cantidad_B25 -= self.cantidad_B25_operacion_actual
                 self.saldo_reservado_25 -= self.cantidad_B25_operacion_actual
@@ -985,7 +846,7 @@ class MaquinaExpendedora:
         
         if self.saldo_actual > 0:
             self.cambio_a_devolver = self.saldo_actual
-            self.devolver_cambio()
+            self.devolver_cambio2()
             
         self.manejar_evento(14)
 
@@ -1020,8 +881,8 @@ class MaquinaExpendedora:
     
     def validar_stock(self):
         """Valida si hay stock del producto seleccionado"""
-        for producto in self.productos:
-            if producto == self.productos[producto]["nombre"] and self.productos[producto]["stock"] > 0:
+        for key,val in self.productos.items():
+            if val["nombre"] == self.productos[key]["nombre"] and self.productos[key]["stock"] > 0:
                 return True
         return False
     
@@ -1104,3 +965,14 @@ class MaquinaExpendedora:
             print(f"{estado_anterior} → {estado_actual} (por: {evento})")
         
         print("=" * 60)
+
+""" diccio = {
+    "N": {"nombre": "Naranja", "stock": 10},
+    "M": {"nombre": "Manzana", "stock": 10},
+    "L": {"nombre": "Limon", "stock": 10}
+}
+
+for i,j in diccio.items():
+    print(i,j)
+ """
+

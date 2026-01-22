@@ -118,7 +118,7 @@ class aplicacionPrincipal:
                                           "¡Compra exitosa!\n\nProducto entregado.\n¡Gracias por su compra!", 
                                           "info")
                         
-                self.maquina.manejar_evento("REINICIAR")
+                # self.maquina.manejar_evento("REINICIAR")
                 self.actualizar_interfaz()
             
         elif estado == 0: 
@@ -183,6 +183,7 @@ class aplicacionPrincipal:
         """Este metodo controla la habilitacion y deshabilitacion
            de los botones segun el estado de la maquina expendedora."""
         estado = self.maquina.estado_actual
+        saldo_actual = self.maquina.saldo_actual
 
         if estado == 0 or estado == 2:  
             self.ventana.habilitar_botones_monedas(True)
@@ -193,10 +194,26 @@ class aplicacionPrincipal:
             else:
                 self.ventana.habilitar_boton_cancelar(True)
         elif estado == 3:  
-            self.ventana.habilitar_botones_monedas(False)
-            self.ventana.habilitar_botones_productos(True)
+            # self.ventana.habilitar_botones_monedas(False)
+            # self.ventana.habilitar_botones_productos(True)
             self.ventana.habilitar_boton_continuar(False)
             self.ventana.habilitar_boton_cancelar(True)
+
+            if saldo_actual >= self.maquina.productos["N"]["precio"]:
+                self.ventana.habilitar_boton_naranja(True)
+            else:
+                self.ventana.habilitar_boton_naranja(False)
+
+            if saldo_actual >= self.maquina.productos["L"]["precio"]:
+                self.ventana.habilitar_boton_limon(True)
+            else:
+                self.ventana.habilitar_boton_limon(False)
+
+            if saldo_actual >= self.maquina.productos["M"]["precio"]:
+                self.ventana.habilitar_boton_manzana(True)
+            else:
+                self.ventana.habilitar_boton_limon(False)
+
         elif estado == 5: 
             self.ventana.habilitar_botones_monedas(False)
             self.ventana.habilitar_botones_productos(False)
