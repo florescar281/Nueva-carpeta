@@ -75,59 +75,75 @@ class aplicacionPrincipal:
         
         if not resultado.get('exito', False):
             self.mostrar_alerta("Error en Confirmación", resultado['mensaje'], "error")
-        else:
-            # Aqui se muestra imformacion de compra exitosa
-            if "Producto entregado" in resultado['mensaje'] or "Pago exitoso" in resultado['mensaje']:
-                self.mostrar_alerta("Compra Exitosa", resultado['mensaje'], "info")
+            return
         
-        # Aqui se verifica si tenemos que procesar más eventos
         estado = self.maquina.estado_actual
-        if estado == 7: 
+        
+        # PASO 1: Si estamos en estado 7, despachar producto
+        if estado == 7:
             resultado_despacho = self.maquina.manejar_evento("PRODUCTO_DESPACHADO")
             self.actualizar_interfaz()
             print(f"Despacho: {resultado_despacho['mensaje']}")
             
             if not resultado_despacho.get('exito', False):
                 self.mostrar_alerta("Error en Despacho", resultado_despacho['mensaje'], "error")
-            elif resultado_despacho.get('exito', False):
-                # El producto fue despachado exitosamente
-                self.mostrar_alerta("Producto Entregado", resultado_despacho['mensaje'], "info")
+                return
             
-            if self.maquina.estado_actual == 8:  
-                resultado_cambio = self.maquina.manejar_evento("CAMBIO_DEVUELTO")
-                self.actualizar_interfaz()
-                print(f"Cambio: {resultado_cambio['mensaje']}")
-                
-                if not resultado_cambio.get('exito', False):
-                    self.mostrar_alerta("Error en Cambio", resultado_cambio['mensaje'], "error")
-                elif resultado_cambio.get('exito', False):
-                    # Información detallada del cambio
-                    mensaje_cambio = resultado_cambio['mensaje']
-                    vuelto_B5 = resultado_cambio.get('vuelto_B5', 0)
-                    vuelto_B10 = resultado_cambio.get('vuelto_B10', 0)
-                    vuelto_B25 = resultado_cambio.get('vuelto_B25', 0)
-                    
-                    if vuelto_B5 > 0 or vuelto_B10 > 0 or vuelto_B25 > 0:
-                        mensaje_detallado = f"¡Compra exitosa!\n\n"
-                        mensaje_detallado += f"{mensaje_cambio.split('¡Gracias por su compra!')[0]}\n"
-                        mensaje_detallado += "¡Gracias por su compra!"
-                        self.mostrar_alerta("Compra Completada", mensaje_detallado, "info")
-                    else:
-                        # Si no hay cambio, mostrar mensaje simple de agradecimiento
-                        self.mostrar_alerta("Compra Completada", 
-                                          "¡Compra exitosa!\n\nProducto entregado.\n¡Gracias por su compra!", 
-                                          "info")
-                        
-                # self.maquina.manejar_evento("REINICIAR")
-                self.actualizar_interfaz()
-            
-        elif estado == 0: 
-            # Mostrar alerta de compra exitosa sin cambio
+            # Después de despachar, verificar si hay cambio
+            if self.maquina.estado_actual == 8:
+                # Ahora manejar la pregunta del cambio
+                self.manejar_cambio_despues_despacho(resultado_despacho)
+        
+        # PASO 2: Si estamos directamente en estado 8 (después de recargar)
+        elif estado == 8:
+            self.manejar_cambio_despues_despacho(resultado)
+        
+        elif estado == 0:
             if resultado.get('exito', False) and "Producto entregado" in resultado['mensaje']:
                 self.mostrar_alerta("Compra Completada", 
-                                  "¡Compra exitosa!\n\nProducto entregado.\n¡Gracias por su compra!", 
-                                  "info")
+                                "¡Compra exitosa!\n\nProducto entregado.\n¡Gracias por su compra!", 
+                                "info")
 
+    def manejar_cambio_despues_despacho(self, resultado):
+        """Maneja la lógica del cambio después de despachar producto"""
+        cambio = resultado.get('cambio', 0)
+        
+        if cambio >= 30:
+            respuesta = self.mostrar_alerta(
+                "Cambio disponible", 
+                f"Tiene ${cambio} de cambio disponible.\n¿Desea usar este dinero para comprar otro producto?",
+                "yesno"
+            )
+            
+            if respuesta:
+                # Usar cambio para nueva compra
+                self.maquina.saldo_actual = cambio
+                self.maquina.producto_seleccionado = None
+                self.maquina.cambio_a_devolver = 0
+                self.maquina.estado_actual = 3
+                
+                self.actualizar_interfaz()
+                self.mostrar_alerta("Saldo disponible", 
+                    f"Tiene ${cambio} disponibles para seleccionar otro producto.", 
+                    "info")
+            else:
+                # Devolver cambio en efectivo
+                resultado_cambio = self.maquina.manejar_evento("CAMBIO_DEVUELTO")
+                self.actualizar_interfaz()
+                
+                if resultado_cambio.get('exito', False):
+                    self.mostrar_alerta("Cambio Devuelto", resultado_cambio['mensaje'], "info")
+                    self.maquina.manejar_evento("REINICIAR")
+                    self.actualizar_interfaz()
+        else:
+            # Cambio menor a $30, devolver inmediatamente
+            resultado_cambio = self.maquina.manejar_evento("CAMBIO_DEVUELTO")
+            self.actualizar_interfaz()
+            
+            if resultado_cambio.get('exito', False):
+                self.mostrar_alerta("Cambio Devuelto", resultado_cambio['mensaje'], "info")
+                self.maquina.manejar_evento("REINICIAR")
+                self.actualizar_interfaz()
     def procesar_cancelar(self):
         """Procesa la cancelación de la operación."""
         if self.maquina.estado_actual == 5:

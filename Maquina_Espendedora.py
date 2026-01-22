@@ -2,9 +2,9 @@ class MaquinaExpendedora:
     def __init__(self):
 
         self.productos = {
-            "N": {"nombre": "Naranja", "stock": 10, "precio": 30.00},
-            "L": {"nombre": "Limon", "stock": 10, "precio": 30.00},
-            "M": {"nombre": "Manzana", "stock": 10, "precio": 30.00}
+            "N": {"nombre": "Naranja", "stock": 10, "precio": 15.00},
+            "L": {"nombre": "Limon", "stock": 10, "precio": 20.00},
+            "M": {"nombre": "Manzana", "stock": 10, "precio": 25.00}
         }
         
         # Precio fijo para todos los productos
@@ -414,7 +414,7 @@ class MaquinaExpendedora:
         if self.cambio_a_devolver > 0:
             self.estado_actual = 8  # DEVOLVIENDO_CAMBIO
             mensaje = f"Producto entregado. Preparando cambio: ${self.cambio_a_devolver}"
-            self.manejar_evento(13)  # CAMBIO_DEVUELTO
+            # self.manejar_evento(13)  # CAMBIO_DEVUELTO
             return {
                 'exito': True,
                 'mensaje': mensaje,
