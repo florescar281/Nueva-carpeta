@@ -79,7 +79,6 @@ class aplicacionPrincipal:
         
         estado = self.maquina.estado_actual
         
-        # PASO 1: Si estamos en estado 7, despachar producto
         if estado == 7:
             resultado_despacho = self.maquina.manejar_evento("PRODUCTO_DESPACHADO")
             self.actualizar_interfaz()
@@ -87,14 +86,16 @@ class aplicacionPrincipal:
             
             if not resultado_despacho.get('exito', False):
                 self.mostrar_alerta("Error en Despacho", resultado_despacho['mensaje'], "error")
-                return
             
-            # Después de despachar, verificar si hay cambio
+            if self.maquina.cambio_a_devolver == 0:
+                self.mostrar_alerta("Compra Completada", 
+                                    "¡Compra exitosa!\n\nProducto entregado.\n¡Gracias por su compra!", 
+                                    "info")
+                self.actualizar_interfaz()
+            
             if self.maquina.estado_actual == 8:
-                # Ahora manejar la pregunta del cambio
                 self.manejar_cambio_despues_despacho(resultado_despacho)
-        
-        # PASO 2: Si estamos directamente en estado 8 (después de recargar)
+
         elif estado == 8:
             self.manejar_cambio_despues_despacho(resultado)
         
@@ -116,7 +117,6 @@ class aplicacionPrincipal:
             )
             
             if respuesta:
-                # Usar cambio para nueva compra
                 self.maquina.saldo_actual = cambio
                 self.maquina.producto_seleccionado = None
                 self.maquina.cambio_a_devolver = 0
@@ -127,23 +127,29 @@ class aplicacionPrincipal:
                     f"Tiene ${cambio} disponibles para seleccionar otro producto.", 
                     "info")
             else:
-                # Devolver cambio en efectivo
                 resultado_cambio = self.maquina.manejar_evento("CAMBIO_DEVUELTO")
                 self.actualizar_interfaz()
                 
                 if resultado_cambio.get('exito', False):
                     self.mostrar_alerta("Cambio Devuelto", resultado_cambio['mensaje'], "info")
-                    self.maquina.manejar_evento("REINICIAR")
                     self.actualizar_interfaz()
-        else:
-            # Cambio menor a $30, devolver inmediatamente
+
+        elif cambio <= 30 and cambio > 0:
             resultado_cambio = self.maquina.manejar_evento("CAMBIO_DEVUELTO")
             self.actualizar_interfaz()
-            
             if resultado_cambio.get('exito', False):
                 self.mostrar_alerta("Cambio Devuelto", resultado_cambio['mensaje'], "info")
-                self.maquina.manejar_evento("REINICIAR")
                 self.actualizar_interfaz()
+
+        elif cambio == 0:
+            self.mostrar_alerta("Compra Completada", 
+                                "¡Compra exitosa!\n\nProducto entregado.\n¡Gracias por su compra!", 
+                                "info")
+            self.actualizar_interfaz()
+
+        else:
+            self.mostrar_alerta("Error en Cambio", "Ha ocurrido un error al procesar el cambio.", "error")
+                
     def procesar_cancelar(self):
         """Procesa la cancelación de la operación."""
         if self.maquina.estado_actual == 5:
